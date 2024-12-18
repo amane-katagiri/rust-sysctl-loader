@@ -203,4 +203,101 @@ log.name = default.log",
             }
         );
     }
+
+    #[test]
+    fn overwrite() {
+        let result = parse_sysctl_conf_str(
+            "endpoint = localhost:3000
+endpoint = localhost:3001",
+        );
+        assert_eq!(
+            result.unwrap(),
+            SysctlParameterHashMap {
+                items: HashMap::from([("endpoint", SysctlParameterValue::V("localhost:3001")),])
+            }
+        );
+    }
+
+    #[test]
+    fn whitespaces() {
+        let result = parse_sysctl_conf_str(
+            "  endpoint = localhost:3000  
+
+        ",
+        );
+        assert_eq!(
+            result.unwrap(),
+            SysctlParameterHashMap {
+                items: HashMap::from([("endpoint", SysctlParameterValue::V("localhost:3000")),])
+            }
+        );
+    }
+
+    #[test]
+    fn comments() {
+        let result = parse_sysctl_conf_str(
+            "#commentline
+;commentline2
+  #commentline3
+  ;commentline4
+endpoint = localhost:3000
+",
+        );
+        assert_eq!(
+            result.unwrap(),
+            SysctlParameterHashMap {
+                items: HashMap::from([("endpoint", SysctlParameterValue::V("localhost:3000")),])
+            }
+        );
+    }
+
+    #[test]
+    fn invalid_token_begins_with_hyphen() {
+        let result = parse_sysctl_conf_str(
+            "endpoint = localhost:3000
+-log.file = /var/log/console.log",
+        );
+        assert_eq!(
+            result.unwrap(),
+            SysctlParameterHashMap {
+                items: HashMap::from([("endpoint", SysctlParameterValue::V("localhost:3000")),])
+            }
+        );
+    }
+
+    #[test]
+    fn invalid_token_begins_with_dot() {
+        let result = parse_sysctl_conf_str(".endpoint = localhost:3000");
+        assert_eq!(
+            result,
+            Err("Token '.endpoint' has invalid hierarchical structure".to_string())
+        );
+    }
+
+    #[test]
+    fn invalid_token_ends_with_dot() {
+        let result = parse_sysctl_conf_str("endpoint. = localhost:3000");
+        assert_eq!(
+            result,
+            Err("Token 'endpoint.' has invalid hierarchical structure".to_string())
+        );
+    }
+
+    #[test]
+    fn invalid_token_has_continuous_dots() {
+        let result = parse_sysctl_conf_str("end..point = localhost:3000");
+        assert_eq!(
+            result,
+            Err("Token 'end..point' has invalid hierarchical structure".to_string())
+        );
+    }
+
+    #[test]
+    fn invalid_syntax() {
+        let result = parse_sysctl_conf_str("end.point.localhost:3000");
+        assert_eq!(
+            result,
+            Err("'end.point.localhost:3000' is not format `token = value`".to_string())
+        );
+    }
 }
