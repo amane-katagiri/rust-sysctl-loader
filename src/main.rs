@@ -7,6 +7,6 @@ fn main() {
     }
     let file = args.get(1).unwrap();
     let file_content = fs::read_to_string(file).expect(&format!("cannot open '{}'", file));
-    let sysctl_conf = rust_sysctl_loader::parse_sysctl_conf_str(&file_content).unwrap();
+    let sysctl_conf = rust_sysctl_loader::sysctl::parse_str(&file_content).unwrap();
     println!("{:?}", sysctl_conf);
 }
