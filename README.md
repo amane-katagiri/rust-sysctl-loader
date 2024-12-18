@@ -20,14 +20,17 @@ This library supports the following specification of sysctl.conf(5), and reads a
 ### CLI
 
 ```sh
-cargo run /path/to/sysctl.conf
+cargo run /path/to/sysctl.conf [/path/to/schema.txt]
 ```
 
 ### Library
 
 - `rust_sysctl_loader::sysctl::parse_str(&str)`: Parser for sysctl.conf(5) string into SysctlParameterHashMap
+- `rust_sysctl_loader::schema::parse_str(&str)`: Parser for schema string into SchemaHashMap
+- `rust_sysctl_loader::validator::validate(SysctlParameterHashMap, SchemaHashMap)`: Validator for sysctl.conf with schema
 - `rust_sysctl_loader::hashmap::SysctlParameterHashMap`: Recursive HashMap representing sysctl.conf(5)
 - `rust_sysctl_loader::hashmap::SysctlParameterValue`: Enum for V(literal string value) or M(child HashMap)
+- `rust_sysctl_loader::schema::SchemaHashMap`: HashMap representing schema
 
 ## License
 

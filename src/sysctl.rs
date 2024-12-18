@@ -11,7 +11,7 @@ fn parse_token<'a>(token: &'a str, value: &'a str) -> Result<SysctlParameter<'a>
     // invalid token begins or ends with a `.` or has continuous `.`
     if token.starts_with(".") || token.ends_with(".") || token.contains("..") {
         Err(format!(
-            "Token '{}' has invalid hierarchical structure",
+            "Token '{}' has an invalid hierarchical structure",
             token
         ))
     // valid token
@@ -36,7 +36,7 @@ fn parse_line<'a>(line: &'a str) -> Result<Option<SysctlParameter<'a>>, String> 
         Ok(None)
     // invalid syntax line
     } else if !line.contains("=") {
-        Err(format!("'{}' is not format `token = value`", line))
+        Err(format!("'{}' is not in format `token = value`", line))
     // valid syntax line
     } else {
         let mut parameter = line.splitn(2, "=");
