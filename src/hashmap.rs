@@ -13,6 +13,11 @@ impl fmt::Debug for SysctlParameterValue<'_> {
         }
     }
 }
+impl<'a> SysctlParameterValue<'a> {
+    pub fn from_map(value: HashMap<&'a str, SysctlParameterValue<'a>>) -> Self {
+        SysctlParameterValue::M(Box::new(SysctlParameterHashMap { items: value }))
+    }
+}
 
 #[derive(PartialEq)]
 pub struct SysctlParameterHashMap<'a> {

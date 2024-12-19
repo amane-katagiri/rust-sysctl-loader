@@ -28,9 +28,108 @@ pub fn validate(sysctl_conf: SysctlParameterHashMap, schema: SchemaHashMap) -> R
         let path = s.0.split(".").collect::<Vec<&str>>();
         match sysctl_conf.get(&path) {
             Some(SysctlParameterValue::V(value)) => validate_value(s.0, value, s.1),
-            Some(SysctlParameterValue::M(_)) => Err(format!("'{}' is not a literal value, is a submap", s.0)),
+            Some(SysctlParameterValue::M(_)) => {
+                Err(format!("'{}' is not a literal value, is a submap", s.0))
+            }
             _ => Err(format!("'{}' is not found", s.0)),
         }?
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn sample1() {
+        let result = validate(
+            SysctlParameterHashMap {
+                items: HashMap::from([
+                    ("endpoint", SysctlParameterValue::V("localhost:3000")),
+                    ("debug", SysctlParameterValue::V("true")),
+                    (
+                        "log",
+                        SysctlParameterValue::from_map(HashMap::from([
+                            ("file", SysctlParameterValue::V("/var/log/console.log")),
+                            ("limit", SysctlParameterValue::V("1024")),
+                        ])),
+                    ),
+                ]),
+            },
+            SchemaHashMap::from([
+                ("endpoint", SchemaType::String()),
+                ("debug", SchemaType::Bool()),
+                ("log.file", SchemaType::String()),
+                ("log.limit", SchemaType::Integer()),
+            ]),
+        );
+        assert_eq!(result, Ok(()),);
+    }
+
+    #[test]
+    fn invalid_sysctl_conf_no_such_token() {
+        let result = validate(
+            SysctlParameterHashMap {
+                items: HashMap::from([("endpoint", SysctlParameterValue::V("localhost:3000"))]),
+            },
+            SchemaHashMap::from([("log.limit", SchemaType::Integer())]),
+        );
+        assert_eq!(result, Err(format!("'log.limit' is not found")),);
+    }
+
+    #[test]
+    fn invalid_sysctl_conf_submap_token() {
+        let result = validate(
+            SysctlParameterHashMap {
+                items: HashMap::from([
+                    ("endpoint", SysctlParameterValue::V("localhost:3000")),
+                    ("debug", SysctlParameterValue::V("true")),
+                    (
+                        "log",
+                        SysctlParameterValue::from_map(HashMap::from([
+                            ("file", SysctlParameterValue::V("/var/log/console.log")),
+                            ("limit", SysctlParameterValue::V("1024")),
+                        ])),
+                    ),
+                ]),
+            },
+            SchemaHashMap::from([("log", SchemaType::String())]),
+        );
+        assert_eq!(
+            result,
+            Err(format!("'log' is not a literal value, is a submap")),
+        );
+    }
+
+    #[test]
+    fn invalid_sysctl_conf_invalid_bool() {
+        let result = validate(
+            SysctlParameterHashMap {
+                items: HashMap::from([("endpoint", SysctlParameterValue::V("localhost:3000"))]),
+            },
+            SchemaHashMap::from([("endpoint", SchemaType::Bool())]),
+        );
+        assert_eq!(
+            result,
+            Err(format!("'endpoint' has not a bool value 'localhost:3000'")),
+        );
+    }
+
+    #[test]
+    fn invalid_sysctl_conf_invalid_integer() {
+        let result = validate(
+            SysctlParameterHashMap {
+                items: HashMap::from([("endpoint", SysctlParameterValue::V("localhost:3000"))]),
+            },
+            SchemaHashMap::from([("endpoint", SchemaType::Integer())]),
+        );
+        assert_eq!(
+            result,
+            Err(format!(
+                "'endpoint' has not a integer value 'localhost:3000'"
+            )),
+        );
+    }
 }

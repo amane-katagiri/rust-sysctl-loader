@@ -49,9 +49,7 @@ fn parse_line<'a>(line: &'a str) -> Result<Option<SysctlParameter<'a>>, String> 
     }
 }
 
-pub fn parse_str<'a>(
-    sysctl_conf: &'a str,
-) -> Result<SysctlParameterHashMap<'a>, String> {
+pub fn parse_str<'a>(sysctl_conf: &'a str) -> Result<SysctlParameterHashMap<'a>, String> {
     let mut parameter = SysctlParameterHashMap::new();
     for line in sysctl_conf.lines() {
         let parsed = parse_line(line)?;
@@ -68,18 +66,13 @@ mod tests {
     use crate::hashmap::SysctlParameterValue;
     use std::collections::HashMap;
 
-    impl<'a> SysctlParameterValue<'a> {
-        fn from(value: HashMap<&'a str, SysctlParameterValue<'a>>) -> Self {
-            SysctlParameterValue::M(Box::new(SysctlParameterHashMap { items: value }))
-        }
-    }
-
     #[test]
     fn sample1() {
         let result = parse_str(
             "endpoint = localhost:3000
 debug = true
-log.file = /var/log/console.log",
+log.file = /var/log/console.log
+log.limit = 1024",
         );
         assert_eq!(
             result.unwrap(),
@@ -89,10 +82,10 @@ log.file = /var/log/console.log",
                     ("debug", SysctlParameterValue::V("true")),
                     (
                         "log",
-                        SysctlParameterValue::from(HashMap::from([(
-                            "file",
-                            SysctlParameterValue::V("/var/log/console.log")
-                        )]))
+                        SysctlParameterValue::from_map(HashMap::from([
+                            ("file", SysctlParameterValue::V("/var/log/console.log")),
+                            ("limit", SysctlParameterValue::V("1024"))
+                        ]))
                     )
                 ])
             }
@@ -105,6 +98,7 @@ log.file = /var/log/console.log",
             "endpoint = localhost:3000
 # debug = true
 log.file = /var/log/console.log
+log.limit = 1024
 log.name = default.log",
         );
         assert_eq!(
@@ -114,8 +108,9 @@ log.name = default.log",
                     ("endpoint", SysctlParameterValue::V("localhost:3000")),
                     (
                         "log",
-                        SysctlParameterValue::from(HashMap::from([
+                        SysctlParameterValue::from_map(HashMap::from([
                             ("file", SysctlParameterValue::V("/var/log/console.log")),
+                            ("limit", SysctlParameterValue::V("1024")),
                             ("name", SysctlParameterValue::V("default.log"))
                         ]))
                     )
@@ -190,7 +185,7 @@ endpoint = localhost:3000
         let result = parse_str(".endpoint = localhost:3000");
         assert_eq!(
             result,
-            Err("Token '.endpoint' has invalid hierarchical structure".to_string())
+            Err("Token '.endpoint' has an invalid hierarchical structure".to_string())
         );
     }
 
@@ -199,7 +194,7 @@ endpoint = localhost:3000
         let result = parse_str("endpoint. = localhost:3000");
         assert_eq!(
             result,
-            Err("Token 'endpoint.' has invalid hierarchical structure".to_string())
+            Err("Token 'endpoint.' has an invalid hierarchical structure".to_string())
         );
     }
 
@@ -208,7 +203,7 @@ endpoint = localhost:3000
         let result = parse_str("end..point = localhost:3000");
         assert_eq!(
             result,
-            Err("Token 'end..point' has invalid hierarchical structure".to_string())
+            Err("Token 'end..point' has an invalid hierarchical structure".to_string())
         );
     }
 
@@ -217,7 +212,7 @@ endpoint = localhost:3000
         let result = parse_str("end.point.localhost:3000");
         assert_eq!(
             result,
-            Err("'end.point.localhost:3000' is not format `token = value`".to_string())
+            Err("'end.point.localhost:3000' is not in format `token = value`".to_string())
         );
     }
 }
